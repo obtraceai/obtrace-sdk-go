@@ -9,7 +9,7 @@ import (
 func main() {
 	client := ob.NewClient(ob.Config{
 		APIKey:        "devkey",
-		IngestBaseURL: "https://injet.obtrace.ai",
+		IngestBaseURL: "https://inject.obtrace.ai",
 		ServiceName:   "go-example",
 		TenantID:      "tenant-dev",
 		ProjectID:     "project-dev",

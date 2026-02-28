@@ -3,7 +3,7 @@
 ```go
 client := obtrace.NewClient(obtrace.Config{
   APIKey: "<API_KEY>",
-  IngestBaseURL: "https://injet.obtrace.ai",
+  IngestBaseURL: "https://inject.obtrace.ai",
   ServiceName: "go-api",
 })
 
