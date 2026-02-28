@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+build/
+out/
+.next/
+coverage/
+*.tsbuildinfo
+
+# language artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.class
+*.jar
+target/
+
+# env and local settings
+.env
+.env.*
+!.env.example
+
+# editor/os
+.DS_Store
+.vscode/
+.idea/

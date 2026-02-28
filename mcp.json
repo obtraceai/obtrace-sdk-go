@@ -1,0 +1,10 @@
+{
+  "mcp_version": "1.0",
+  "name": "obtrace-sdk-go",
+  "description": "MCP context metadata for Obtrace Go SDK repository",
+  "resources": [
+    { "id": "readme", "path": "README.md", "description": "Go SDK usage" },
+    { "id": "docs-index", "path": "docs/index.md", "description": "Documentation index" },
+    { "id": "client", "path": "pkg/obtrace/client.go", "description": "SDK client implementation" }
+  ]
+}

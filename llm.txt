@@ -1,0 +1,18 @@
+Obtrace SDK Go
+
+Purpose:
+- Go backend SDK for OTLP transport, context propagation, and HTTP instrumentation.
+
+Core packages:
+- pkg/obtrace
+- httpx
+- middleware/nethttp
+- middleware/gin
+- middleware/echo
+
+Design principle:
+- Thin SDK, no business logic authority.
+- Ingest/control-plane owns policy and product semantics.
+
+Reference:
+- specs/sdk/universal-contract-v1.md
