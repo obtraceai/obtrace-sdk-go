@@ -72,4 +72,3 @@ _ = client.Flush(context.Background())
 - MCP metadata: `mcp.json`
 
 ## Reference
-- `specs/sdk/universal-contract-v1.md`
