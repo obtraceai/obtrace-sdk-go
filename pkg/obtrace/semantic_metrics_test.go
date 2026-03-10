@@ -12,4 +12,10 @@ func TestSemanticMetricsExposeCanonicalNames(t *testing.T) {
 	if SemanticMetrics.WebVitalINP != "web.vital.inp" {
 		t.Fatalf("unexpected web vital metric: %s", SemanticMetrics.WebVitalINP)
 	}
+	if !IsSemanticMetric(SemanticMetrics.WebVitalINP) {
+		t.Fatalf("expected semantic metric to be recognized")
+	}
+	if IsSemanticMetric("orders.count") {
+		t.Fatalf("unexpected custom metric recognition")
+	}
 }

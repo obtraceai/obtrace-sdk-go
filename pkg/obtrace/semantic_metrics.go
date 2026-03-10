@@ -49,3 +49,33 @@ var SemanticMetrics = semanticMetrics{
 	WebVitalTTFB:          "web.vital.ttfb",
 	UserActions:           "obtrace.sim.web.react.actions",
 }
+
+var semanticMetricSet = map[string]struct{}{
+	SemanticMetrics.Throughput:            {},
+	SemanticMetrics.ErrorRate:             {},
+	SemanticMetrics.LatencyP95:            {},
+	SemanticMetrics.RuntimeCPUUtilization: {},
+	SemanticMetrics.RuntimeMemoryUsage:    {},
+	SemanticMetrics.RuntimeThreadCount:    {},
+	SemanticMetrics.RuntimeGCPause:        {},
+	SemanticMetrics.RuntimeEventloopLag:   {},
+	SemanticMetrics.ClusterCPUUtilization: {},
+	SemanticMetrics.ClusterMemoryUsage:    {},
+	SemanticMetrics.ClusterNodeCount:      {},
+	SemanticMetrics.ClusterPodCount:       {},
+	SemanticMetrics.DBOperationLatency:    {},
+	SemanticMetrics.DBClientErrors:        {},
+	SemanticMetrics.DBConnectionsUsage:    {},
+	SemanticMetrics.MessagingConsumerLag:  {},
+	SemanticMetrics.WebVitalLCP:           {},
+	SemanticMetrics.WebVitalFCP:           {},
+	SemanticMetrics.WebVitalINP:           {},
+	SemanticMetrics.WebVitalCLS:           {},
+	SemanticMetrics.WebVitalTTFB:          {},
+	SemanticMetrics.UserActions:           {},
+}
+
+func IsSemanticMetric(name string) bool {
+	_, ok := semanticMetricSet[name]
+	return ok
+}

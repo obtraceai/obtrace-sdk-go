@@ -11,6 +11,7 @@ type Config struct {
 	Env               string
 	RequestTimeoutMS  int
 	MaxQueueSize      int
+	ValidateSemanticMetrics bool
 	Debug             bool
 	DefaultHeaders    map[string]string
 	TraceHeaderName   string

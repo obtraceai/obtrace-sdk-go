@@ -48,6 +48,9 @@ func (c *Client) Log(level, message string, ctx *Context) {
 }
 
 func (c *Client) Metric(name string, value float64, unit string, ctx *Context) {
+	if c.cfg.ValidateSemanticMetrics && c.cfg.Debug && !IsSemanticMetric(name) {
+		fmt.Printf("[obtrace-sdk-go] non-canonical metric name: %s\n", name)
+	}
 	c.enqueue("/otlp/v1/metrics", buildMetricPayload(c.cfg, name, value, unit, ctx))
 }
 
