@@ -19,7 +19,10 @@ func main() {
 	})
 
 	client.Log("INFO", "go sdk initialized", nil)
-	client.Metric("go.example.metric", 1, "1", nil)
-	client.Span("go.example.span", "", "", 0, "", map[string]any{"sample": true})
+	client.Metric(ob.SemanticMetrics.RuntimeCPUUtilization, 0.41, "1", nil)
+	client.Span("checkout.charge", "", "", 0, "", map[string]any{
+		"feature.name":     "checkout",
+		"payment.provider": "stripe",
+	})
 	_ = client.Flush(context.Background())
 }

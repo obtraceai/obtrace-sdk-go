@@ -36,14 +36,31 @@ Recommended:
 ## Quickstart
 
 ```go
+import (
+  "context"
+
+  "github.com/obtrace/sdk-go/pkg/obtrace"
+)
+
 client := obtrace.NewClient(obtrace.Config{
   APIKey: "<API_KEY>",
   IngestBaseURL: "https://inject.obtrace.ai",
   ServiceName: "go-api",
 })
 client.Log("INFO", "started", nil)
+client.Metric(obtrace.SemanticMetrics.RuntimeCPUUtilization, 0.41, "1", nil)
+client.Span("checkout.charge", "", "", 0, "", map[string]any{
+  "feature.name": "checkout",
+  "payment.provider": "stripe",
+})
 _ = client.Flush(context.Background())
 ```
+
+## Canonical metrics and custom spans
+
+- Use `obtrace.SemanticMetrics` for globally normalized metric names.
+- Custom spans are emitted with `Client.Span(...)`; put domain-specific detail in `attrs`.
+- Prefer canonical names first and only fall back to free-form metrics for truly custom product signals.
 
 ## Frameworks and HTTP
 
