@@ -26,7 +26,7 @@ Required:
 - `IngestBaseURL`
 - `ServiceName`
 
-Recommended:
+Optional (auto-resolved from API key on the server side):
 - `TenantID`
 - `ProjectID`
 - `AppID`
@@ -34,6 +34,24 @@ Recommended:
 - `ServiceVersion`
 
 ## Quickstart
+
+### Simplified setup
+
+The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only three fields are needed:
+
+```go
+import "github.com/obtrace/sdk-go/pkg/obtrace"
+
+client := obtrace.NewClient(obtrace.Config{
+  APIKey:        "obt_live_...",
+  IngestBaseURL: "https://ingest.obtrace.io",
+  ServiceName:   "my-service",
+})
+```
+
+### Full configuration
+
+For advanced use cases you can override the resolved values explicitly:
 
 ```go
 import (
