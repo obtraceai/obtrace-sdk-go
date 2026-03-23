@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -20,38 +21,60 @@ type Client struct {
 	cfg   Config
 	httpc *http.Client
 
-	mu    sync.Mutex
-	queue []queued
+	mu               sync.Mutex
+	queue            []queued
+	circuitFailures  int
+	circuitOpenUntil time.Time
 }
 
 func NewClient(cfg Config) *Client {
+	if cfg.APIKey == "" && cfg.Debug {
+		fmt.Println("[obtrace-sdk-go] WARNING: APIKey is empty")
+	}
+	if cfg.IngestBaseURL == "" && cfg.Debug {
+		fmt.Println("[obtrace-sdk-go] WARNING: IngestBaseURL is empty")
+	}
 	if cfg.RequestTimeoutMS <= 0 {
 		cfg.RequestTimeoutMS = 5000
 	}
 	if cfg.MaxQueueSize <= 0 {
 		cfg.MaxQueueSize = 1000
 	}
-	if cfg.DefaultHeaders == nil {
-		cfg.DefaultHeaders = map[string]string{}
+	hdrs := make(map[string]string, len(cfg.DefaultHeaders))
+	for k, v := range cfg.DefaultHeaders {
+		hdrs[k] = v
 	}
+	cfg.DefaultHeaders = hdrs
 	return &Client{
 		cfg: cfg,
 		httpc: &http.Client{
 			Timeout: time.Duration(cfg.RequestTimeoutMS) * time.Millisecond,
+			Transport: &http.Transport{
+				MaxIdleConns:        10,
+				MaxIdleConnsPerHost: 5,
+				IdleConnTimeout:     30 * time.Second,
+			},
 		},
 		queue: make([]queued, 0, cfg.MaxQueueSize),
 	}
 }
 
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "...[truncated]"
+}
+
 func (c *Client) Log(level, message string, ctx *Context) {
-	c.enqueue("/otlp/v1/logs", buildLogsPayload(c.cfg, strings.ToUpper(level), message, ctx))
+	c.enqueue("/otlp/v1/logs", buildLogsPayload(c.cfg, strings.ToUpper(level), truncate(message, 32768), ctx))
 }
 
 func (c *Client) Metric(name string, value float64, unit string, ctx *Context) {
 	if c.cfg.ValidateSemanticMetrics && c.cfg.Debug && !IsSemanticMetric(name) {
 		fmt.Printf("[obtrace-sdk-go] non-canonical metric name: %s\n", name)
 	}
-	c.enqueue("/otlp/v1/metrics", buildMetricPayload(c.cfg, name, value, unit, ctx))
+	c.enqueue("/otlp/v1/metrics", buildMetricPayload(c.cfg, truncate(name, 1024), value, unit, ctx))
 }
 
 func (c *Client) Span(name, traceID, spanID string, statusCode int, statusMessage string, attrs map[string]any) (string, string) {
@@ -60,6 +83,14 @@ func (c *Client) Span(name, traceID, spanID string, statusCode int, statusMessag
 	}
 	if len(spanID) != 16 {
 		spanID = randomHex(8)
+	}
+	name = truncate(name, 32768)
+	if attrs != nil {
+		for k, v := range attrs {
+			if sv, ok := v.(string); ok {
+				attrs[k] = truncate(sv, 4096)
+			}
+		}
 	}
 	start := fmt.Sprintf("%d", time.Now().UnixNano())
 	end := fmt.Sprintf("%d", time.Now().UnixNano())
@@ -73,17 +104,53 @@ func (c *Client) InjectPropagation(h http.Header, traceID, spanID, sessionID str
 
 func (c *Client) Flush(ctx context.Context) error {
 	c.mu.Lock()
-	batch := make([]queued, len(c.queue))
-	copy(batch, c.queue)
-	c.queue = c.queue[:0]
+	if time.Now().Before(c.circuitOpenUntil) {
+		c.mu.Unlock()
+		return nil
+	}
+	halfOpen := c.circuitFailures >= 5
+	var batch []queued
+	if halfOpen {
+		if len(c.queue) > 0 {
+			batch = []queued{c.queue[0]}
+			c.queue = c.queue[1:]
+		}
+	} else {
+		batch = make([]queued, len(c.queue))
+		copy(batch, c.queue)
+		c.queue = c.queue[:0]
+	}
 	c.mu.Unlock()
 
+	var lastErr error
 	for _, q := range batch {
-		if err := c.send(ctx, q); err != nil && c.cfg.Debug {
-			fmt.Printf("[obtrace-sdk-go] send failed endpoint=%s err=%v\n", q.endpoint, err)
+		if err := c.send(ctx, q); err != nil {
+			lastErr = err
+			c.mu.Lock()
+			c.circuitFailures++
+			if c.circuitFailures >= 5 {
+				c.circuitOpenUntil = time.Now().Add(30 * time.Second)
+				if c.cfg.Debug {
+					fmt.Println("[obtrace-sdk-go] circuit breaker opened")
+				}
+			}
+			c.mu.Unlock()
+			if c.cfg.Debug {
+				fmt.Printf("[obtrace-sdk-go] send failed endpoint=%s err=%v\n", q.endpoint, err)
+			}
+		} else {
+			c.mu.Lock()
+			if c.circuitFailures > 0 {
+				if c.cfg.Debug {
+					fmt.Println("[obtrace-sdk-go] circuit breaker closed")
+				}
+				c.circuitFailures = 0
+				c.circuitOpenUntil = time.Time{}
+			}
+			c.mu.Unlock()
 		}
 	}
-	return nil
+	return lastErr
 }
 
 func (c *Client) Shutdown(ctx context.Context) error {
@@ -94,6 +161,9 @@ func (c *Client) enqueue(endpoint string, payload map[string]any) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if len(c.queue) >= c.cfg.MaxQueueSize {
+		if c.cfg.Debug {
+			fmt.Printf("[obtrace-sdk-go] WARNING: queue full (%d), dropping oldest item\n", c.cfg.MaxQueueSize)
+		}
 		c.queue = c.queue[1:]
 	}
 	c.queue = append(c.queue, queued{endpoint: endpoint, payload: payload})
@@ -118,7 +188,10 @@ func (c *Client) send(ctx context.Context, q queued) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+	}()
 	if res.StatusCode >= 300 {
 		return fmt.Errorf("status=%d", res.StatusCode)
 	}
