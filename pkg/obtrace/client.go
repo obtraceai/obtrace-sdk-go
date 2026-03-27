@@ -45,7 +45,7 @@ func NewClient(cfg Config) *Client {
 		hdrs[k] = v
 	}
 	cfg.DefaultHeaders = hdrs
-	return &Client{
+	c := &Client{
 		cfg: cfg,
 		httpc: &http.Client{
 			Timeout: time.Duration(cfg.RequestTimeoutMS) * time.Millisecond,
@@ -57,6 +57,8 @@ func NewClient(cfg Config) *Client {
 		},
 		queue: make([]queued, 0, cfg.MaxQueueSize),
 	}
+	installLogCapture(c)
+	return c
 }
 
 func truncate(s string, max int) string {
