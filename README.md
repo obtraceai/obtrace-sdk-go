@@ -16,7 +16,7 @@ SDK is thin/dumb.
 ## Install
 
 ```bash
-go get github.com/obtrace/sdk-go
+go get github.com/obtraceai/obtrace-sdk-go
 ```
 
 ## Configuration
@@ -40,7 +40,7 @@ Optional (auto-resolved from API key on the server side):
 The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only three fields are needed:
 
 ```go
-import "github.com/obtrace/sdk-go/pkg/obtrace"
+import "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 
 client := obtrace.NewClient(obtrace.Config{
   APIKey:        "obt_live_...",
@@ -57,7 +57,7 @@ For advanced use cases you can override the resolved values explicitly:
 import (
   "context"
 
-  "github.com/obtrace/sdk-go/pkg/obtrace"
+  "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 client := obtrace.NewClient(obtrace.Config{
