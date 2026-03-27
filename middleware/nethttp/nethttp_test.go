@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 func TestMiddlewareEmitsTelemetryAndPreservesStatus(t *testing.T) {

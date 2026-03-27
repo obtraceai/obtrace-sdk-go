@@ -3,7 +3,7 @@ package echo
 import (
 	"time"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 type EchoContext interface {

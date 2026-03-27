@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 type rtFunc func(*http.Request) (*http.Response, error)

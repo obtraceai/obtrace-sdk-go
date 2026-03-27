@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 type Transport struct {

@@ -3,7 +3,7 @@ package gin
 import (
 	"time"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 type GinContext interface {

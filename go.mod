@@ -1,3 +1,3 @@
-module github.com/obtrace/sdk-go
+module github.com/obtraceai/obtrace-sdk-go
 
 go 1.24.0

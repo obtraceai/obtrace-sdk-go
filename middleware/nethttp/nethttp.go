@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	ob "github.com/obtrace/sdk-go/pkg/obtrace"
+	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
 
 func Middleware(client *ob.Client, next http.Handler) http.Handler {
