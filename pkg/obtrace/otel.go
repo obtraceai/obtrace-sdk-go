@@ -2,6 +2,7 @@ package obtrace
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"go.opentelemetry.io/otel"
@@ -81,29 +82,41 @@ func setupOTel(cfg Config) (*otelState, func(context.Context) error) {
 		logOpts = append(logOpts, otlploghttp.WithInsecure())
 	}
 
-	traceExp, _ := otlptracehttp.New(context.Background(), traceOpts...)
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(traceExp),
-		sdktrace.WithResource(res),
-	)
+	traceExp, err := otlptracehttp.New(context.Background(), traceOpts...)
+	if err != nil {
+		slog.Warn("obtrace: failed to create trace exporter", "error", err)
+	}
+	tpOpts := []sdktrace.TracerProviderOption{sdktrace.WithResource(res)}
+	if traceExp != nil {
+		tpOpts = append(tpOpts, sdktrace.WithBatcher(traceExp))
+	}
+	tp := sdktrace.NewTracerProvider(tpOpts...)
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	metricExp, _ := otlpmetrichttp.New(context.Background(), metricOpts...)
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)),
-		sdkmetric.WithResource(res),
-	)
+	metricExp, err := otlpmetrichttp.New(context.Background(), metricOpts...)
+	if err != nil {
+		slog.Warn("obtrace: failed to create metric exporter", "error", err)
+	}
+	mpOpts := []sdkmetric.Option{sdkmetric.WithResource(res)}
+	if metricExp != nil {
+		mpOpts = append(mpOpts, sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)))
+	}
+	mp := sdkmetric.NewMeterProvider(mpOpts...)
 	otel.SetMeterProvider(mp)
 
-	logExp, _ := otlploghttp.New(context.Background(), logOpts...)
-	lp := sdklog.NewLoggerProvider(
-		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExp)),
-		sdklog.WithResource(res),
-	)
+	logExp, err := otlploghttp.New(context.Background(), logOpts...)
+	if err != nil {
+		slog.Warn("obtrace: failed to create log exporter", "error", err)
+	}
+	lpOpts := []sdklog.LoggerProviderOption{sdklog.WithResource(res)}
+	if logExp != nil {
+		lpOpts = append(lpOpts, sdklog.WithProcessor(sdklog.NewBatchProcessor(logExp)))
+	}
+	lp := sdklog.NewLoggerProvider(lpOpts...)
 	global.SetLoggerProvider(lp)
 
 	state := &otelState{

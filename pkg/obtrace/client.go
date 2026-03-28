@@ -3,8 +3,10 @@ package obtrace
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -13,6 +15,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+var clientCount atomic.Int32
+
 type Client struct {
 	cfg      Config
 	otel     *otelState
@@ -20,6 +24,9 @@ type Client struct {
 }
 
 func NewClient(cfg Config) *Client {
+	if clientCount.Add(1) > 1 {
+		slog.Warn("obtrace: NewClient called more than once, creating duplicate instance")
+	}
 	if cfg.APIKey == "" && cfg.Debug {
 		fmt.Println("[obtrace-sdk-go] WARNING: APIKey is empty")
 	}
