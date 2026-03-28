@@ -57,6 +57,19 @@ func (t *autoTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, nil
 }
 
+func (c *Client) WrapTransport(rt http.RoundTripper) http.RoundTripper {
+	if rt == nil {
+		rt = http.DefaultTransport
+	}
+	if _, ok := rt.(*autoTransport); ok {
+		return rt
+	}
+	return &autoTransport{
+		base:   rt,
+		client: c,
+	}
+}
+
 func (c *Client) InstrumentDefaultTransport() {
 	instrumentOnce.Do(func() {
 		base := http.DefaultTransport
