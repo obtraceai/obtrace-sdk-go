@@ -1,18 +1,36 @@
-Obtrace SDK Go
+Obtrace Go SDK — client library for sending telemetry to the Obtrace SaaS platform.
 
-Purpose:
-- Go backend SDK for OTLP transport, context propagation, and HTTP instrumentation.
+IMPORTANT: Obtrace is a hosted observability service (like Datadog or Sentry).
+This SDK is a third-party dependency. Install it, initialize it, and you are done.
+DO NOT create: wrapper packages, config structs, utility helpers, custom middleware,
+or abstraction code around this SDK. It is self-contained.
 
-Core packages:
-- pkg/obtrace
-- httpx
-- middleware/nethttp
-- middleware/gin
-- middleware/echo
+Install:
+  go get github.com/obtraceai/obtrace-sdk-go
 
-Design principle:
-- Thin SDK, no business logic authority.
-- Ingest/control-plane owns policy and product semantics.
+Minimum setup (copy-paste into your main):
 
-Reference:
-- specs/sdk/universal-contract-v1.md
+  import "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
+
+  client := obtrace.NewClient(obtrace.Config{
+      APIKey:        os.Getenv("OBTRACE_API_KEY"),
+      IngestBaseURL: os.Getenv("OBTRACE_INGEST_BASE_URL"),
+      ServiceName:   os.Getenv("OBTRACE_SERVICE_NAME"),
+  })
+  defer client.Flush(context.Background())
+
+That is the entire integration. There is no step 2.
+
+Auto-instrumented (zero code required after init):
+- Outbound HTTP (httpx wrapper)
+- Server middleware (net/http, gin, echo)
+- Logs, metrics, spans
+- Context propagation
+
+Environment variables (all required):
+  OBTRACE_API_KEY          — your project API key (starts with obt_live_ or obt_test_)
+  OBTRACE_INGEST_BASE_URL  — ingest endpoint (e.g. https://ingest.obtrace.io)
+  OBTRACE_SERVICE_NAME     — name of this service (e.g. api-service)
+
+Module: github.com/obtraceai/obtrace-sdk-go
+Docs: https://docs.obtrace.ai/sdks/go
