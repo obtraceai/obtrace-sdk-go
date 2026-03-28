@@ -63,6 +63,9 @@ func NewClient(cfg Config) *Client {
 		queue: make([]queued, 0, cfg.MaxQueueSize),
 	}
 	installLogCapture(c)
+	if !cfg.DisableAutoHTTP {
+		c.InstrumentDefaultTransport()
+	}
 	return c
 }
 

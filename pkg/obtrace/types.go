@@ -15,8 +15,9 @@ type Config struct {
 	ValidateSemanticMetrics bool
 	Debug             bool
 	DefaultHeaders    map[string]string
-	TraceHeaderName   string
-	SessionHeaderName string
+	TraceHeaderName      string
+	SessionHeaderName    string
+	DisableAutoHTTP      bool
 }
 
 type Context struct {
