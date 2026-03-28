@@ -1,6 +1,6 @@
 module github.com/obtraceai/obtrace-sdk-go
 
-go 1.22.0
+go 1.24.0
 
 require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.67.0
