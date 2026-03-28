@@ -22,7 +22,9 @@ type Client struct {
 	httpc *http.Client
 
 	mu               sync.Mutex
+	flushMu          sync.Mutex
 	queue            []queued
+	queueBytes       int
 	circuitFailures  int
 	circuitOpenUntil time.Time
 }
@@ -39,6 +41,9 @@ func NewClient(cfg Config) *Client {
 	}
 	if cfg.MaxQueueSize <= 0 {
 		cfg.MaxQueueSize = 1000
+	}
+	if cfg.MaxQueueBytes <= 0 {
+		cfg.MaxQueueBytes = 4 * 1024 * 1024
 	}
 	hdrs := make(map[string]string, len(cfg.DefaultHeaders))
 	for k, v := range cfg.DefaultHeaders {
@@ -105,6 +110,11 @@ func (c *Client) InjectPropagation(h http.Header, traceID, spanID, sessionID str
 }
 
 func (c *Client) Flush(ctx context.Context) error {
+	if !c.flushMu.TryLock() {
+		return nil
+	}
+	defer c.flushMu.Unlock()
+
 	c.mu.Lock()
 	if time.Now().Before(c.circuitOpenUntil) {
 		c.mu.Unlock()
@@ -122,6 +132,7 @@ func (c *Client) Flush(ctx context.Context) error {
 		copy(batch, c.queue)
 		c.queue = c.queue[:0]
 	}
+	c.queueBytes = 0
 	c.mu.Unlock()
 
 	var lastErr error
@@ -132,20 +143,11 @@ func (c *Client) Flush(ctx context.Context) error {
 			c.circuitFailures++
 			if c.circuitFailures >= 5 {
 				c.circuitOpenUntil = time.Now().Add(30 * time.Second)
-				if c.cfg.Debug {
-					fmt.Println("[obtrace-sdk-go] circuit breaker opened")
-				}
 			}
 			c.mu.Unlock()
-			if c.cfg.Debug {
-				fmt.Printf("[obtrace-sdk-go] send failed endpoint=%s err=%v\n", q.endpoint, err)
-			}
 		} else {
 			c.mu.Lock()
 			if c.circuitFailures > 0 {
-				if c.cfg.Debug {
-					fmt.Println("[obtrace-sdk-go] circuit breaker closed")
-				}
 				c.circuitFailures = 0
 				c.circuitOpenUntil = time.Time{}
 			}
@@ -160,15 +162,17 @@ func (c *Client) Shutdown(ctx context.Context) error {
 }
 
 func (c *Client) enqueue(endpoint string, payload map[string]any) {
+	b, _ := json.Marshal(payload)
+	payloadBytes := len(b)
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if len(c.queue) >= c.cfg.MaxQueueSize {
-		if c.cfg.Debug {
-			fmt.Printf("[obtrace-sdk-go] WARNING: queue full (%d), dropping oldest item\n", c.cfg.MaxQueueSize)
-		}
+	for len(c.queue) > 0 && (len(c.queue) >= c.cfg.MaxQueueSize || c.queueBytes+payloadBytes > c.cfg.MaxQueueBytes) {
+		dropped, _ := json.Marshal(c.queue[0].payload)
+		c.queueBytes -= len(dropped)
 		c.queue = c.queue[1:]
 	}
 	c.queue = append(c.queue, queued{endpoint: endpoint, payload: payload})
+	c.queueBytes += payloadBytes
 }
 
 func (c *Client) send(ctx context.Context, q queued) error {
