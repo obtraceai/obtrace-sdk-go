@@ -4,13 +4,12 @@ import (
 	"io"
 	"log"
 	"strings"
-	"sync"
 )
 
 type obtraceLogWriter struct {
 	client   *Client
 	original io.Writer
-	mu       sync.Mutex
+	ch       chan string
 }
 
 func (w *obtraceLogWriter) Write(p []byte) (n int, err error) {
@@ -19,16 +18,25 @@ func (w *obtraceLogWriter) Write(p []byte) (n int, err error) {
 	if msg == "" || strings.HasPrefix(msg, "[obtrace") {
 		return
 	}
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.client.Log("INFO", msg, nil)
+	select {
+	case w.ch <- msg:
+	default:
+	}
 	return
+}
+
+func (w *obtraceLogWriter) flush() {
+	for msg := range w.ch {
+		w.client.Log("INFO", msg, nil)
+	}
 }
 
 func installLogCapture(c *Client) {
 	writer := &obtraceLogWriter{
 		client:   c,
 		original: log.Writer(),
+		ch:       make(chan string, 256),
 	}
+	go writer.flush()
 	log.SetOutput(writer)
 }
