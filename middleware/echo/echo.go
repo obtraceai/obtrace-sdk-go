@@ -1,7 +1,7 @@
 package echo
 
 import (
-	"time"
+	"context"
 
 	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
@@ -13,23 +13,12 @@ type EchoContext interface {
 }
 
 func Middleware(client *ob.Client, next func(c EchoContext) error) func(c EchoContext) error {
+	tracer := client.Tracer()
 	return func(c EchoContext) error {
-		started := time.Now()
-		traceID, spanID := client.Span("echo request", "", "", 0, "", map[string]any{
-			"http.method": c.Method(),
-			"http.route":  c.Path(),
-		})
+		_, span := tracer.Start(context.Background(), "echo "+c.Method()+" "+c.Path())
 		err := next(c)
-		client.Log("INFO", "echo request done", &ob.Context{
-			TraceID:    traceID,
-			SpanID:     spanID,
-			Method:     c.Method(),
-			Endpoint:   c.Path(),
-			StatusCode: c.Status(),
-			Attrs: map[string]any{
-				"duration_ms": time.Since(started).Milliseconds(),
-			},
-		})
+		_ = c.Status()
+		span.End()
 		return err
 	}
 }

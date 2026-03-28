@@ -1,7 +1,7 @@
 package gin
 
 import (
-	"time"
+	"context"
 
 	ob "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 )
@@ -14,22 +14,11 @@ type GinContext interface {
 }
 
 func Middleware(client *ob.Client) func(c GinContext) {
+	tracer := client.Tracer()
 	return func(c GinContext) {
-		started := time.Now()
-		traceID, spanID := client.Span("gin request", "", "", 0, "", map[string]any{
-			"http.method": c.RequestMethod(),
-			"http.route":  c.RequestPath(),
-		})
+		_, span := tracer.Start(context.Background(), "gin "+c.RequestMethod()+" "+c.RequestPath())
 		c.Next()
-		client.Log("INFO", "gin request done", &ob.Context{
-			TraceID:    traceID,
-			SpanID:     spanID,
-			Method:     c.RequestMethod(),
-			Endpoint:   c.RequestPath(),
-			StatusCode: c.Status(),
-			Attrs: map[string]any{
-				"duration_ms": time.Since(started).Milliseconds(),
-			},
-		})
+		_ = c.Status()
+		span.End()
 	}
 }

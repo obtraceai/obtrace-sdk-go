@@ -16,12 +16,11 @@ func (f rtFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestTransportRoundTripInjectsTraceparent(t *testing.T) {
-	cfg := ob.Config{
+	client := ob.NewClient(ob.Config{
 		APIKey:        "k",
 		IngestBaseURL: "http://localhost:19090",
 		ServiceName:   "svc",
-	}
-	client := ob.NewClient(cfg)
+	})
 
 	var gotTraceparent string
 	tr := Transport{

@@ -9,7 +9,6 @@ import (
 
 type obtraceLogWriter struct {
 	client   *Client
-	level    string
 	original io.Writer
 	mu       sync.Mutex
 }
@@ -22,14 +21,13 @@ func (w *obtraceLogWriter) Write(p []byte) (n int, err error) {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.client.Log(w.level, msg, nil)
+	w.client.Log("INFO", msg, nil)
 	return
 }
 
 func installLogCapture(c *Client) {
 	writer := &obtraceLogWriter{
 		client:   c,
-		level:    "info",
 		original: log.Writer(),
 	}
 	log.SetOutput(writer)
