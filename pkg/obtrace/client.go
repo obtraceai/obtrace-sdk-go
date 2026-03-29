@@ -36,8 +36,8 @@ func NewClient(cfg Config) *Client {
 	if cfg.APIKey == "" && cfg.Debug {
 		fmt.Println("[obtrace-sdk-go] WARNING: APIKey is empty")
 	}
-	if cfg.IngestBaseURL == "" && cfg.Debug {
-		fmt.Println("[obtrace-sdk-go] WARNING: IngestBaseURL is empty")
+	if cfg.IngestBaseURL == "" {
+		cfg.IngestBaseURL = "https://ingest.obtrace.ai"
 	}
 	hdrs := make(map[string]string, len(cfg.DefaultHeaders))
 	for k, v := range cfg.DefaultHeaders {

@@ -2,7 +2,6 @@
 
 Required:
 - `APIKey`
-- `IngestBaseURL`
 - `ServiceName`
 
 Optional:

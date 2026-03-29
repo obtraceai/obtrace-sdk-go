@@ -23,8 +23,10 @@ go get github.com/obtraceai/obtrace-sdk-go
 
 Required:
 - `APIKey`
-- `IngestBaseURL`
 - `ServiceName`
+
+Optional (defaults to `https://ingest.obtrace.ai`):
+- `IngestBaseURL`
 
 Optional (auto-resolved from API key on the server side):
 - `TenantID`
@@ -37,15 +39,14 @@ Optional (auto-resolved from API key on the server side):
 
 ### Simplified setup
 
-The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only three fields are needed:
+The API key resolves `tenant_id`, `project_id`, `app_id`, and `env` automatically on the server side, so only two fields are needed:
 
 ```go
 import "github.com/obtraceai/obtrace-sdk-go/pkg/obtrace"
 
 client := obtrace.NewClient(obtrace.Config{
-  APIKey:        "obt_live_...",
-  IngestBaseURL: "https://ingest.obtrace.io",
-  ServiceName:   "my-service",
+  APIKey:      "obt_live_...",
+  ServiceName: "my-service",
 })
 ```
 
@@ -61,8 +62,7 @@ import (
 )
 
 client := obtrace.NewClient(obtrace.Config{
-  APIKey: "<API_KEY>",
-  IngestBaseURL: "https://inject.obtrace.ai",
+  APIKey:      "<API_KEY>",
   ServiceName: "go-api",
 })
 client.Log("INFO", "started", nil)

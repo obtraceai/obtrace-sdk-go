@@ -8,14 +8,13 @@ import (
 
 func main() {
 	client := ob.NewClient(ob.Config{
-		APIKey:        "devkey",
-		IngestBaseURL: "https://inject.obtrace.ai",
-		ServiceName:   "go-example",
-		TenantID:      "tenant-dev",
-		ProjectID:     "project-dev",
-		AppID:         "go",
-		Env:           "dev",
-		Debug:         true,
+		APIKey:      "devkey",
+		ServiceName: "go-example",
+		TenantID:    "tenant-dev",
+		ProjectID:   "project-dev",
+		AppID:       "go",
+		Env:         "dev",
+		Debug:       true,
 	})
 
 	client.Log("INFO", "go sdk initialized", nil)
