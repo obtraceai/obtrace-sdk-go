@@ -61,7 +61,7 @@ func (c *Client) handshake() {
 	if base == "" {
 		return
 	}
-	payload := fmt.Sprintf(`{"sdk":"obtrace-sdk-go","sdk_version":"1.0.2","service_name":%q,"service_version":%q,"runtime":"go","runtime_version":"%s"}`,
+	payload := fmt.Sprintf(`{"sdk":"obtrace-sdk-go","sdk_version":"1.2.0","service_name":%q,"service_version":%q,"runtime":"go","runtime_version":"%s"}`,
 		c.cfg.ServiceName, c.cfg.ServiceVersion, strings.TrimPrefix(fmt.Sprintf("%s", runtime.Version()), "go"))
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
