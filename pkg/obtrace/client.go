@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -18,9 +19,14 @@ import (
 var clientCount atomic.Int32
 
 type Client struct {
-	cfg      Config
-	otel     *otelState
-	shutdown func(context.Context) error
+	cfg         Config
+	otel        *otelState
+	shutdown    func(context.Context) error
+	initialized atomic.Bool
+}
+
+func (c *Client) Initialized() bool {
+	return c.initialized.Load()
 }
 
 func NewClient(cfg Config) *Client {
@@ -46,7 +52,41 @@ func NewClient(cfg Config) *Client {
 		shutdown: shutdownFn,
 	}
 	installLogCapture(c)
+	go c.handshake()
 	return c
+}
+
+func (c *Client) handshake() {
+	base := strings.TrimRight(c.cfg.IngestBaseURL, "/")
+	if base == "" {
+		return
+	}
+	payload := fmt.Sprintf(`{"sdk":"obtrace-sdk-go","sdk_version":"1.0.0","service_name":%q,"service_version":%q,"runtime":"go","runtime_version":"%s"}`,
+		c.cfg.ServiceName, c.cfg.ServiceVersion, strings.TrimPrefix(fmt.Sprintf("%s", runtime.Version()), "go"))
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/v1/init", strings.NewReader(payload))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		if c.cfg.Debug {
+			slog.Error("obtrace: init handshake error", "err", err)
+		}
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		c.initialized.Store(true)
+		if c.cfg.Debug {
+			slog.Info("obtrace: init handshake OK")
+		}
+	} else if c.cfg.Debug {
+		slog.Error("obtrace: init handshake failed", "status", resp.StatusCode)
+	}
 }
 
 func truncate(s string, max int) string {
